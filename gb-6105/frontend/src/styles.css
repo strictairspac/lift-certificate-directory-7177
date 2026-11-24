@@ -115,3 +115,21 @@ td a[aria-current=true] { font-weight: 750; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+.muted { color: var(--muted); font-size: .92rem; }
+.inline-form { display: flex; flex-wrap: wrap; align-items: end; gap: .8rem; margin-top: .9rem; }
+.inline-form .field { flex: 1 1 14rem; }
+.inline-form button { flex: 0 0 auto; }
+.version-badge {
+  display: inline-block; padding: .22rem .6rem; border-radius: 999px; font-weight: 700;
+  font-size: .85rem; background: var(--tint); color: var(--accent); white-space: nowrap;
+}
+.version-serving { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.version-rebuilding { background: color-mix(in srgb, #b8860b 18%, transparent); color: #8a6508; }
+.version-archived { background: var(--surface); color: var(--muted); }
+.version-failed { background: color-mix(in srgb, var(--signal) 16%, transparent); color: var(--signal); }
+.danger { background: var(--signal); }
+progress { width: 100%; height: .9rem; accent-color: var(--accent); }
+.pinned-version { border-left: .25rem solid var(--accent); padding-left: .9rem; display: grid; gap: .3rem; }
+.digest { font-size: .8rem; }
+#directory-workspace { display: grid; gap: 1rem; margin-top: 1rem; }
+#directory-workspace .stack { gap: .7rem; }

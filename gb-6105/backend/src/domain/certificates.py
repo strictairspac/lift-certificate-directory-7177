@@ -19,6 +19,19 @@ class Certificate:
             return "已到期"
         return "有效"
 
+    def snapshot(self):
+        return {
+            "code": self.code, "lift": self.lift,
+            "expires_on": self.expires_on.isoformat(), "revoked": self.revoked,
+        }
+
+    @classmethod
+    def from_snapshot(cls, data):
+        return cls(
+            code=data["code"], lift=data["lift"],
+            expires_on=date.fromisoformat(data["expires_on"]), revoked=bool(data["revoked"]),
+        )
+
 
 def _code(value):
     if not isinstance(value, str) or not CODE.fullmatch(value):
@@ -36,6 +49,12 @@ def _date(value):
     return day
 
 
+def build_certificate(code, lift, expires_on, revoked):
+    if type(revoked) is not bool:
+        raise ValueError("撤销标记须为布尔值")
+    return Certificate(_code(code), _code(lift), _date(expires_on), revoked)
+
+
 def parse(payload):
     certificates, probes = payload.get("certificates"), payload.get("probes")
     if not isinstance(certificates, list) or not 1 <= len(certificates) <= 400:
@@ -46,10 +65,8 @@ def parse(payload):
     for item in certificates:
         if not isinstance(item, dict) or set(item) != {"code", "lift", "expires_on", "revoked"}:
             raise ValueError("证书须包含 code、lift、expires_on、revoked")
-        if type(item["revoked"]) is not bool:
-            raise ValueError("撤销标记须为布尔值")
-        result.append(Certificate(
-            _code(item["code"]), _code(item["lift"]), _date(item["expires_on"]), item["revoked"],
+        result.append(build_certificate(
+            item["code"], item["lift"], item["expires_on"], item["revoked"],
         ))
     if len({record.code for record in result}) != len(result):
         raise ValueError("证书档案含重复编号")

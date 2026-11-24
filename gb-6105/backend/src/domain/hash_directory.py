@@ -18,6 +18,8 @@ class Bucket:
 
 
 class Directory:
+    """可扩展哈希目录。容量固定，超深后允许溢出并显式报告。"""
+
     def __init__(self, capacity):
         self.capacity = capacity
         self.depth = 0
@@ -53,6 +55,17 @@ class Directory:
             bucket = self._bucket(record.code)
         bucket.records[record.code] = record
 
+    def upsert(self, record):
+        """影子目录追平用：已存在则原地更正，不存在则按容量规则插入。"""
+        bucket = self._bucket(record.code)
+        if record.code in bucket.records:
+            bucket.records[record.code] = record
+            return
+        while len(bucket.records) >= self.capacity and bucket.depth < MAX_DEPTH:
+            self._split(bucket)
+            bucket = self._bucket(record.code)
+        bucket.records[record.code] = record
+
     def locate(self, key):
         bucket = self._bucket(key)
         return bucket, bucket.records.get(key)
@@ -60,3 +73,43 @@ class Directory:
     def buckets(self):
         unique = {bucket.number: bucket for bucket in self.slots}
         return sorted(unique.values(), key=lambda bucket: bucket.number)
+
+    def records(self):
+        return {code: record for bucket in self.buckets() for code, record in bucket.records.items()}
+
+    def overflow_buckets(self):
+        return [bucket for bucket in self.buckets() if len(bucket.records) > self.capacity]
+
+    def snapshot(self):
+        """可重复的完整目录状态，作为目录版本的持久证据。"""
+        unique = {id(bucket): bucket for bucket in self.slots}
+        bucket_index = {identity: index for index, identity in enumerate(unique)}
+        return {
+            "capacity": self.capacity,
+            "depth": self.depth,
+            "splits": self.splits,
+            "buckets": [
+                {
+                    "number": bucket.number,
+                    "depth": bucket.depth,
+                    "records": [record.snapshot() for record in bucket.records.values()],
+                }
+                for bucket in unique.values()
+            ],
+            "slots": [bucket_index[id(bucket)] for bucket in self.slots],
+        }
+
+    @classmethod
+    def from_snapshot(cls, data):
+        directory = cls(data["capacity"])
+        directory.depth = data["depth"]
+        directory.splits = data["splits"]
+        buckets = []
+        for item in data["buckets"]:
+            bucket = Bucket(item["number"], item["depth"])
+            for record in item["records"]:
+                certificate = Certificate.from_snapshot(record)
+                bucket.records[certificate.code] = certificate
+            buckets.append(bucket)
+        directory.slots = [buckets[index] for index in data["slots"]]
+        return directory

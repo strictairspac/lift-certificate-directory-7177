@@ -1,4 +1,4 @@
-const routes = ["overview", "cases", "runs", "evidence"];
+const routes = ["overview", "cases", "runs", "evidence", "directory"];
 
 export function activeRoute() {
   const [name, id] = (location.hash.slice(1) || "overview").split("/");
